@@ -10,18 +10,19 @@ const {
 
 const main = async() => {
   
-  const db = new Pool({
-    connectionString: process.env.DATABASE_URL,
-    ssl: { rejectUnauthorized: false },
-  })
-  await db.connect()
+  const db = new Map
+  // const db = new Pool({
+  //   connectionString: process.env.DATABASE_URL,
+  //   ssl: { rejectUnauthorized: false },
+  // })
+  // await db.connect()
   
-  await db.query(`
-    CREATE TABLE IF NOT EXISTS store (
-      key         varchar(255) UNIQUE NOT NULL,
-      value       jsonb
-    );
-  `)
+  // await db.query(`
+  //   CREATE TABLE IF NOT EXISTS store (
+  //     key         varchar(255) UNIQUE NOT NULL,
+  //     value       jsonb
+  //   );
+  // `)
   
   const router = express()
   const server = http.createServer( router )
@@ -75,14 +76,19 @@ const main = async() => {
     }
 
     let val = room.cache.get( key )
-    if( val !== undefined ) return val
-    
-    let res = db.query(`SELECT value FROM store WHERE key = $1::text`, [ origin + '/' + key ] )
+    if( val !== undefined ) {
+      console.log(`GET\n\torigin:${origin}\n\tkey:${key}\n\tval:${JSON.stringify(val)}`)
+      return val
+    }
+    // let res = db.query(`SELECT value FROM store WHERE key = $1::text`, [ origin + '/' + key ] )
+    let res = db.get( `${origin}/${key}` )
     room.cache.set( key, res )
     res = await res
 
-    val = res.rows[0] ? res.rows[0].value.delta : null
+    // val = res.rows[0] ? res.rows[0].value.delta : null
+    val = res?.delta ?? null
     room.cache.set( key, val )
+    console.log(`GET\n\torigin:${origin}\n\tkey:${key}\n\tval:${JSON.stringify(val)}`)
 
     return val
   }
@@ -114,15 +120,17 @@ const main = async() => {
       other.send( JSON.stringify([ key, delta ]) )
     }
     
-    const res = await db.query(
-      `
-      INSERT INTO store ( key, value )
-      VALUES( $1::text, $2::json )
-      ON CONFLICT( key ) DO UPDATE
-      SET value = $2::json;
-      `,
-      [ origin + '/' + key, { delta: next } ]
-    )
+    // const res = await db.query(
+    //   `
+    //   INSERT INTO store ( key, value )
+    //   VALUES( $1::text, $2::json )
+    //   ON CONFLICT( key ) DO UPDATE
+    //   SET value = $2::json;
+    //   `,
+    //   [ origin + '/' + key, { delta: next } ]
+    // )
+    db.set( `${origin}/${key}` , { delta: next } )
+    console.log(`PUT\n\torigin ${origin}\n\tkey ${key}\n\tdelta ${JSON.stringify(next)}`)
 
     return next
   }
@@ -164,7 +172,7 @@ const main = async() => {
    * Unsubscribe: disconnect
    */
   socket.on( 'connection' , ( line, req )=> {
-
+    console.log('connection')
     const origin = req.headers.origin
 
     line
@@ -183,6 +191,7 @@ const main = async() => {
       if( !Array.isArray( message ) ) return
 
       const [ key, val ] = message
+      console.log(`REQUEST\n\tkey ${key}\n\tval ${JSON.stringify(val)}`)
 
       if( val ) {
         // line.send(

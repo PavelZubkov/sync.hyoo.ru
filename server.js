@@ -1,7 +1,8 @@
-const http = require('http')
+const https = require('https')
 const express = require('express')
 const cors = require('cors')
 const ws = require('ws')
+const fs = require('fs')
 const { Pool } = require('pg')
 const {
   $hyoo_crowd_doc,
@@ -23,9 +24,14 @@ const main = async() => {
   //     value       jsonb
   //   );
   // `)
+	//
+	const options = {
+  key: fs.readFileSync('/root/key.pem'),
+  cert: fs.readFileSync('/root/cert.pem')
+};
   
   const router = express()
-  const server = http.createServer( router )
+  const server = https.createServer( options, router )
 
   router.use( cors() )
   router.use( express.json() )

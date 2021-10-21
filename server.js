@@ -26,8 +26,8 @@ const main = async() => {
   // `)
 	//
 	const options = {
-  key: fs.readFileSync('/root/key.pem'),
-  cert: fs.readFileSync('/root/cert.pem')
+  key: fs.readFileSync('/root/cert/key.pem'),
+  cert: fs.readFileSync('/root/cert/cert.pem')
 };
   
   const router = express()

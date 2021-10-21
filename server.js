@@ -179,7 +179,7 @@ const main = async() => {
    */
   socket.on( 'connection' , ( line, req )=> {
     console.log('connection')
-    const origin = req.headers.origin
+    const origin = 'no_origin'
 
     line
     .on( 'message' , async( message )=> {
